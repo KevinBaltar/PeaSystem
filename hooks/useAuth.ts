@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { createClient } from "../src/utils/supabase/client";
+import { supabase } from "../src/utils/supabase/client"; // ✅ Importa o cliente já criado, sem chamar createClient()
 import { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
+//comentário
 export interface User {
   id: string;
   email: string;
@@ -16,11 +17,8 @@ export function useAuth() {
   useEffect(() => {
     checkSession();
 
-    // Escutar mudanças na sessão (importante para OAuth)
-    const supabase = createClient();
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
+    // ✅ Não cria novo client, usa o mesmo supabase
+    const { data: subscription } = supabase.auth.onAuthStateChange(
       (event: AuthChangeEvent, session: Session | null) => {
         console.log("Auth state changed:", event, session);
 
@@ -40,13 +38,12 @@ export function useAuth() {
     );
 
     return () => {
-      subscription.unsubscribe();
+      subscription.subscription.unsubscribe();
     };
   }, []);
 
   const checkSession = async () => {
     try {
-      const supabase = createClient();
       const { data, error } = await supabase.auth.getSession();
 
       if (error) {
@@ -70,15 +67,10 @@ export function useAuth() {
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
-      const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            name: name,
-          },
-        },
+        options: { data: { name } },
       });
 
       if (error) throw error;
@@ -101,7 +93,6 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const supabase = createClient();
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -127,17 +118,12 @@ export function useAuth() {
 
   const signInWithGoogle = async () => {
     try {
-      const supabase = createClient();
-      // Do not forget to complete setup at https://supabase.com/docs/guides/auth/social-login/auth-google
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: {
-          redirectTo: window.location.origin,
-        },
+        options: { redirectTo: window.location.origin },
       });
 
       if (error) {
-        // Provide helpful error message if Google OAuth is not configured
         if (
           error.message.includes("provider") ||
           error.message.includes("not enabled")
@@ -158,7 +144,6 @@ export function useAuth() {
 
   const resetPassword = async (email: string) => {
     try {
-      const supabase = createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
@@ -174,7 +159,6 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
-      const supabase = createClient();
       await supabase.auth.signOut();
       setUser(null);
       setAccessToken(null);
